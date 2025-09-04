@@ -1,11 +1,10 @@
 # wxauto4 - WeChat自动化工具
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-0.0.1b1-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Version-40.1.1-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/Python-3.9%2B-blue.svg" alt="Python">
-  <img src="https://img.shields.io/badge/Platform-Windows-lightgrey.svg" alt="Platform">
+  <img src="https://img.shields.io/badge/Platform-Windows10+-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/WeChat-4.0.5-green.svg" alt="WeChat">
-  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
 </p>
 
 wxauto4 是一个适用于微信4.0客户端的 Python 自动化库，提供微信自动化操作接口，包括消息发送、文件传输等功能。
