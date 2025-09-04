@@ -1,0 +1,3 @@
+*.ipynb
+wxauto_logs
+__pycache__
