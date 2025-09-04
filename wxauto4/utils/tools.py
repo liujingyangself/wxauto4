@@ -6,6 +6,7 @@ from PIL import Image
 import re
 import math
 import time
+import shutil
 
 def get_file_dir(dir_path=None):
     if dir_path is None:
@@ -111,7 +112,15 @@ def is_valid_image(file_path):
         return True
     except Exception as e:
         return False
-    
+
+def delete_update_files():
+    home = Path.home()
+    update_dir = home / 'AppData' / 'Roaming' / 'Tencent' / 'xwechat' / 'update'
+    if update_dir.exists():
+        for file in update_dir.iterdir():
+            shutil.rmtree(file) if file.is_dir() else file.unlink()
+
+
 # ============================================================================================================================================
 #                                                           消息解析方法
 # ============================================================================================================================================

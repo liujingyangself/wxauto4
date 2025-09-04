@@ -2,7 +2,8 @@ from wxauto4.ui.base import BaseUISubWnd, BaseUIWnd
 from wxauto4.ui import WeChatMainWnd, WeChatSubWnd
 from wxauto4.logger import wxlog
 from wxauto4.param import WxParam, WxResponse, PROJECT_NAME
-from .utils import GetAllWindows, uilock
+from wxauto4.utils import GetAllWindows, uilock
+from wxauto4.utils.tools import delete_update_files
 from concurrent.futures import ThreadPoolExecutor
 from abc import ABC, abstractmethod
 import threading
@@ -37,6 +38,7 @@ class Listener(ABC):
         if not hasattr(self, 'listen') or not self.listen:
             self.listen = {}
         while not self._listener_stop_event.is_set():
+            delete_update_files()
             try:
                 self._get_listen_messages()
             except KeyboardInterrupt:
@@ -187,6 +189,7 @@ class WeChat(Chat, Listener):
             debug: bool=False,
             **kwargs
         ):
+        delete_update_files()
         hwnd = None
         if 'hwnd' in kwargs:
             hwnd = kwargs['hwnd']
@@ -362,4 +365,5 @@ class WeChat(Chat, Listener):
         self._api._navigation_api.contact_icon.Click()
 
     def ShutDown(self):
+        delete_update_files()
         os.system(f'taskkill /f /pid {self._api.pid}')
