@@ -1,12 +1,17 @@
-from pathlib import Path
-from wxauto4.uia import uiautomation as uia
-from .win32 import FindWindow, GetAllWindows
+from __future__ import annotations
+
 from datetime import datetime, timedelta
-from PIL import Image
-import re
+from pathlib import Path
 import math
-import time
+import re
 import shutil
+import time
+
+from PIL import Image
+
+from wxauto4.uia import uiautomation as uia
+
+from .win32 import GetAllWindows
 
 def get_file_dir(dir_path=None):
     if dir_path is None:
@@ -129,8 +134,18 @@ def detect_message_direction(
     image_path: str,
     avatar_height_ratio: float = 0.8,
     tolerance: int = 0,
-) -> str:
-    # 逐列扫描法判断消息方向 (纯 Pillow 版本)
+) -> tuple[str, float]:
+    """通过截图判断消息气泡的方向。
+
+    Args:
+        image_path: 消息截图路径。
+        avatar_height_ratio: 头像在截图中占据的高度比例。
+        tolerance: 像素颜色比较的容忍度。
+
+    Returns:
+        Tuple[str, float]: ``("left", distance)`` 或 ``("right", distance)``，
+        ``distance`` 表示从对应方向开始出现气泡的列索引，便于后续定位。
+    """
 
     img = Image.open(image_path)
     if img.mode != 'RGB':
@@ -171,11 +186,10 @@ def detect_message_direction(
     # print(f"left_idx: {left_idx}, right_idx: {right_idx}")
     if left_idx == math.inf and right_idx == math.inf:
         # 都没找到变化列，兜底
-        return 'right'
-    elif left_idx <= right_idx:
-        return 'left', left_idx
-    else:
-        return 'right', right_idx
+        return 'right', math.inf
+    if left_idx <= right_idx:
+        return 'left', float(left_idx)
+    return 'right', float(right_idx)
 
 def calculate_pixel_variance(region):
     """
@@ -252,7 +266,11 @@ def calculate_color_diversity(region):
     
     return diversity_ratio
 
-def detect_message_direction_enhanced(image_path, avatar_width_ratio=0.15, avatar_height_ratio=0.8):
+def detect_message_direction_enhanced(
+    image_path: str,
+    avatar_width_ratio: float = 0.15,
+    avatar_height_ratio: float = 0.8,
+) -> tuple[str, float]:
     """
     增强版检测，结合方差和颜色多样性
     
@@ -291,7 +309,9 @@ def detect_message_direction_enhanced(image_path, avatar_width_ratio=0.15, avata
     left_score = left_variance * 0.7 + left_diversity * 1000 * 0.3
     right_score = right_variance * 0.7 + right_diversity * 1000 * 0.3
     
-    return 'left' if left_score > right_score else 'right'
+    if left_score > right_score:
+        return 'left', float(left_score)
+    return 'right', float(right_score)
 
 def batch_detect_messages(image_paths, method='basic', **kwargs):
     """
@@ -308,15 +328,20 @@ def batch_detect_messages(image_paths, method='basic', **kwargs):
     results = []
     
     detect_func = detect_message_direction if method == 'basic' else detect_message_direction_enhanced
-    
+
     for path in image_paths:
         try:
-            direction = detect_func(path, **kwargs)
+            result = detect_func(path, **kwargs)
+            if isinstance(result, tuple):
+                direction, distance = result
+            else:
+                direction, distance = result, None
             sender = '对方' if direction == 'left' else '自己'
             results.append({
                 'path': path,
                 'direction': direction,
-                'sender': sender
+                'sender': sender,
+                'distance': distance,
             })
         except Exception as e:
             results.append({
