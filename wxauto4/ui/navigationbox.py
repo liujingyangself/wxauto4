@@ -40,8 +40,24 @@ class NavigationBox:
     def switch_to_files_page(self):
         self.files_icon.Click()
 
-    def switch_to_files_page(self):
-        self.files_icon.Click()
-
     def switch_to_browser_page(self):
         self.browser_icon.Click()
+
+    def switch_to_moments_page(self):
+        self.moments_icon.Click()
+
+    def switch_to_video_page(self):
+        self.video_icon.Click()
+
+    def switch_to_stories_page(self):
+        self.stories_icon.Click()
+
+    def switch_to_mini_program_page(self):
+        self.mini_program_icon.Click()
+
+    def switch_to_phone_page(self):
+        self.phone_icon.Click()
+
+    def switch_to_settings_page(self):
+        self.settings_icon.Click()
+

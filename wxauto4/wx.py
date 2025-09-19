@@ -364,6 +364,43 @@ class WeChat(Chat, Listener):
         """切换到联系人页面"""
         self._api._navigation_api.contact_icon.Click()
 
+    def SwitchToFavorites(self) -> None:
+        """切换到收藏页面"""
+        self._api._navigation_api.switch_to_favorites_page()
+
+    def SwitchToFiles(self) -> None:
+        """切换到聊天文件页面"""
+        self._api._navigation_api.switch_to_files_page()
+
+    def SwitchToMoments(self) -> None:
+        """切换到朋友圈页面"""
+        self._api._navigation_api.switch_to_moments_page()
+
+    def SwitchToBrowser(self) -> None:
+        """切换到搜一搜页面"""
+        self._api._navigation_api.switch_to_browser_page()
+
+    def SwitchToVideo(self) -> None:
+        """切换到视频号页面"""
+        self._api._navigation_api.switch_to_video_page()
+
+    def SwitchToStories(self) -> None:
+        """切换到看一看页面"""
+        self._api._navigation_api.switch_to_stories_page()
+
+    def SwitchToMiniProgram(self) -> None:
+        """切换到小程序面板页面"""
+        self._api._navigation_api.switch_to_mini_program_page()
+
+    def SwitchToPhone(self) -> None:
+        """切换到手机页面"""
+        self._api._navigation_api.switch_to_phone_page()
+
+    def SwitchToSettings(self) -> None:
+        """切换到更多设置页面"""
+        self._api._navigation_api.switch_to_settings_page()
+
     def ShutDown(self):
         delete_update_files()
         os.system(f'taskkill /f /pid {self._api.pid}')
+
