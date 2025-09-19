@@ -4,6 +4,7 @@ from wxauto4.logger import wxlog
 from wxauto4.param import WxParam, WxResponse, PROJECT_NAME
 from wxauto4.utils import GetAllWindows, uilock
 from wxauto4.utils.tools import delete_update_files
+from wxauto4.moment import Moment
 from concurrent.futures import ThreadPoolExecutor
 from abc import ABC, abstractmethod
 import threading
@@ -213,6 +214,7 @@ class WeChat(Chat, Listener):
         self.NavigationBox = self._api._navigation_api
         self.SessionBox = self._api._session_api
         self.ChatBox = self._api._chat_api
+        self.Moment = Moment(self)
         self.nickname = self._api.nickname
         self.listen = {}
         if start_listener:
