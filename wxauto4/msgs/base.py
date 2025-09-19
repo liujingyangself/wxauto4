@@ -7,11 +7,13 @@ from wxauto4.utils import uilock
 from wxauto4.param import WxParam, WxResponse, PROJECT_NAME
 from abc import ABC, abstractmethod
 from typing import (
-    Dict, 
-    List, 
+    Dict,
+    List,
     Union,
     Any,
-    TYPE_CHECKING
+    TYPE_CHECKING,
+    Iterator,
+    Tuple
 )
 from hashlib import md5
 
@@ -23,7 +25,126 @@ def truncate_string(s: str, n: int=8) -> str:
     return s if len(s) <= n else s[:n] + '...'
 
 class Message:
-    ...
+    """消息对象基类
+
+    该类不会直接实例化，而是作为所有消息类型的基类提供
+    常用的工具方法。实际的属性均由子类在 ``__init__`` 中
+    动态注入。
+    """
+
+    _EXCLUDE_FIELDS = {"control", "parent", "root"}
+
+    # region --- 迭代/映射相关 -------------------------------------------------
+    def _iter_public_items(self) -> Iterator[Tuple[str, Any]]:
+        """遍历当前消息可公开的字段"""
+
+        if not hasattr(self, "__dict__"):
+            return
+
+        for key, value in self.__dict__.items():
+            if key.startswith("_") or key in self._EXCLUDE_FIELDS:
+                continue
+            if key == "hash" and not WxParam.MESSAGE_HASH:
+                continue
+            yield key, value
+
+    def __iter__(self) -> Iterator[str]:
+        for key, _ in self._iter_public_items():
+            yield key
+
+    def __len__(self) -> int:
+        return sum(1 for _ in self._iter_public_items())
+
+    def __getitem__(self, item: str) -> Any:
+        for key, value in self._iter_public_items():
+            if key == item:
+                return value
+        raise KeyError(item)
+
+    def __contains__(self, key: object) -> bool:
+        if not isinstance(key, str):
+            return False
+        return any(field == key for field, _ in self._iter_public_items())
+
+    # endregion ----------------------------------------------------------------
+
+    # region --- 字段访问 -------------------------------------------------------
+    def keys(self) -> Tuple[str, ...]:
+        return tuple(key for key, _ in self._iter_public_items())
+
+    def values(self) -> Tuple[Any, ...]:
+        return tuple(value for _, value in self._iter_public_items())
+
+    def items(self) -> Tuple[Tuple[str, Any], ...]:
+        return tuple(self._iter_public_items())
+
+    def get(self, key: str, default: Any = None) -> Any:
+        for field, value in self._iter_public_items():
+            if field == key:
+                return value
+        return default
+
+    def to_dict(self) -> Dict[str, Any]:
+        return dict(self._iter_public_items())
+
+    def copy(self) -> Dict[str, Any]:
+        return self.to_dict().copy()
+
+    # endregion ----------------------------------------------------------------
+
+    # region --- 状态判断 -------------------------------------------------------
+    def match(self, **conditions: Any) -> bool:
+        """判断当前消息是否同时满足给定的字段条件"""
+
+        data = self.to_dict()
+        return all(data.get(key) == value for key, value in conditions.items())
+
+    @property
+    def is_self(self) -> bool:
+        return getattr(self, "attr", None) == "self"
+
+    @property
+    def is_friend(self) -> bool:
+        return getattr(self, "attr", None) == "friend"
+
+    @property
+    def is_system(self) -> bool:
+        return getattr(self, "attr", None) == "system"
+
+    # endregion ----------------------------------------------------------------
+
+    # region --- 魔术方法 -------------------------------------------------------
+    def __str__(self) -> str:
+        content = getattr(self, "content", None)
+        if content is None:
+            return super().__str__()
+        return str(content)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Message):
+            return NotImplemented
+
+        self_id = getattr(self, "id", None)
+        other_id = getattr(other, "id", None)
+        if self_id is not None and other_id is not None:
+            return self_id == other_id
+
+        if WxParam.MESSAGE_HASH:
+            return getattr(self, "hash", None) == getattr(other, "hash", None)
+
+        return self is other
+
+    def __hash__(self) -> int:
+        msg_id = getattr(self, "id", None)
+        if msg_id is not None:
+            return hash(msg_id)
+
+        if WxParam.MESSAGE_HASH:
+            return hash(getattr(self, "hash", None))
+
+        return super().__hash__()
+
+    # endregion ----------------------------------------------------------------
 
 class BaseMessage(Message, ABC):
     type: str = 'base'
