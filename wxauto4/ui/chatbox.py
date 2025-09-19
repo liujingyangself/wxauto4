@@ -20,6 +20,7 @@ from wxauto4.msgs.msg import parse_msg
 import time
 import os
 import re
+from typing import Iterable, Optional, Sequence, Tuple, Union
 
 def truncate_string(s: str, n: int=8) -> str:
     s = s.replace('\n', '').strip()
@@ -188,14 +189,12 @@ class ChatBox(BaseUISubWnd):
     def get_msgs(self):
         if self.msgbox.Exists(0):
             return [
-                parse_msg(msg_control, self) 
-                for msg_control 
-                in self.msgbox.GetChildren()
+                parse_msg(msg_control, self)
+                for msg_control in self._iter_message_controls()
                 if uia.IsElementInWindow(self.msgbox, msg_control)
-                # if msg_control.ControlTypeName in ('ListItemControl', 'CheckBoxControl')
             ]
         return []
-    
+
     def get_new_msgs(self):
         if not self.msgbox.Exists(0):
             return []
@@ -274,13 +273,86 @@ class ChatBox(BaseUISubWnd):
             new_controls = [i for i in msg_controls if i.runtimeid in new_ids]
             
             return [
-                    parse_msg(msg_control, self) 
-                    for msg_control 
+                    parse_msg(msg_control, self)
+                    for msg_control
                     in new_controls
                     if msg_control.ControlTypeName == 'ListItemControl'
                 ]
-        
+
         return []
+
+    def _update_used_msg_ids(self):
+        if not self.msgbox.Exists(0):
+            USED_MSG_IDS[self.id] = tuple()
+            LAST_MSG_COUNT[self.id] = 0
+            return
+        msg_controls = [
+            ctrl for ctrl in self.msgbox.GetChildren()
+            if ctrl.ControlTypeName == 'ListItemControl'
+        ]
+        if not msg_controls:
+            USED_MSG_IDS[self.id] = tuple()
+            LAST_MSG_COUNT[self.id] = 0
+            return
+        USED_MSG_IDS[self.id] = tuple(ctrl.runtimeid for ctrl in msg_controls[-100:])
+        LAST_MSG_COUNT[self.id] = len(msg_controls)
+
+    def _iter_message_controls(self) -> Iterable[uia.Control]:
+        if not self.msgbox.Exists(0):
+            return []
+        return [
+            ctrl
+            for ctrl in self.msgbox.GetChildren()
+            if ctrl.ControlTypeName == 'ListItemControl'
+        ]
+
+    def _normalize_msg_id(self, msg_id: Union[Sequence[int], str, None]) -> Optional[Tuple[int, ...]]:
+        if msg_id is None:
+            return None
+        if isinstance(msg_id, str):
+            parts = re.findall(r"\d+", msg_id)
+            if not parts:
+                return None
+            return tuple(int(p) for p in parts)
+        if isinstance(msg_id, tuple):
+            try:
+                return tuple(int(p) for p in msg_id)
+            except (TypeError, ValueError):
+                return None
+        if isinstance(msg_id, list):
+            try:
+                return tuple(int(p) for p in msg_id)
+            except (TypeError, ValueError):
+                return None
+        return None
+
+    def get_msg_by_id(self, msg_id: Union[Sequence[int], str]) -> Optional['Message']:
+        normalized_id = self._normalize_msg_id(msg_id)
+        if normalized_id is None:
+            return None
+        for msg_control in self._iter_message_controls():
+            if msg_control.runtimeid == normalized_id:
+                return parse_msg(msg_control, self)
+        return None
+
+    def get_msg_by_hash(self, msg_hash: str) -> Optional['Message']:
+        if not msg_hash:
+            return None
+        msg_hash = msg_hash.strip()
+        is_digest = bool(re.fullmatch(r"[0-9a-fA-F]{32}", msg_hash))
+        controls = list(self._iter_message_controls())
+        for msg_control in reversed(controls):
+            msg = parse_msg(msg_control, self)
+            candidate = msg.hash if is_digest else getattr(msg, 'hash_text', None)
+            if candidate == msg_hash:
+                return msg
+        return None
+
+    def get_last_msg(self) -> Optional['Message']:
+        message_controls = list(self._iter_message_controls())
+        if not message_controls:
+            return None
+        return parse_msg(message_controls[-1], self)
 
 
 class AtEle:
