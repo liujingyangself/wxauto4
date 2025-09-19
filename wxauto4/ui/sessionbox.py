@@ -1,9 +1,10 @@
 from __future__ import annotations
 from wxauto4 import uia
 from wxauto4.param import (
-    WxParam, 
+    WxParam,
     WxResponse,
 )
+from wxauto4.languages import MENU_OPTIONS
 from wxauto4.ui.component import Menu
 from wxauto4.utils.win32 import SetClipboardText
 from wxauto4.logger import wxlog
@@ -12,6 +13,7 @@ from typing import (
     Union,
     List
 )
+import re
 
 
 class SessionBox:
@@ -120,6 +122,11 @@ class SessionBox:
         wxlog.debug("回到会话列表顶部")
         self.control.MiddleClick()
         self.control.SendKeys('{Home}')
+
+    def go_bottom(self):
+        wxlog.debug("回到会话列表底部")
+        self.control.MiddleClick()
+        self.control.SendKeys('{End}')
     
 class SessionElement:
     def __init__(
@@ -131,6 +138,47 @@ class SessionElement:
         self.parent = parent
         self.control = control
         self.content = control.Name
+
+    @property
+    def texts(self) -> List[str]:
+        """拆分当前会话控件中的文本行"""
+
+        return [
+            line for line in str(self.content).split('\n')
+            if line and line.strip()
+        ]
+
+    @property
+    def name(self) -> str:
+        """会话名称"""
+
+        if self.texts:
+            return self.texts[0]
+        return ''
+
+    @property
+    def unread_count(self) -> int:
+        """未读消息数量"""
+
+        unread_pattern = re.compile(r'\[(\d+)条\]')
+        for text in self.texts:
+            if match := unread_pattern.search(text):
+                return int(match.group(1))
+        return 0
+
+    def _menu_option_text(self, option_key: str) -> str:
+        option = MENU_OPTIONS.get(option_key, {})
+        lang = getattr(WxParam, 'LANGUAGE', 'cn')
+        text = option.get(lang) if isinstance(option, dict) else None
+        if not text:
+            text = option.get('cn') if isinstance(option, dict) else None
+        return text or option_key
+
+    def select_menu_option(self, option_key: str, wait=0.3):
+        """根据配置语言选择菜单项"""
+
+        option_text = self._menu_option_text(option_key)
+        return self.select_option(option_text, wait)
 
     def __repr__(self):
         content = str(self.content).replace('\n', ' ')
@@ -168,6 +216,41 @@ class SessionElement:
         menu = Menu(self.parent)
         return menu.select(option)
 
+    def pin(self):
+        """置顶聊天"""
+
+        return self.select_menu_option('置顶')
+
+    def unpin(self):
+        """取消置顶聊天"""
+
+        return self.select_menu_option('取消置顶')
+
+    def mark_unread(self):
+        """标记为未读"""
+
+        return self.select_menu_option('标为未读')
+
+    def toggle_mute(self):
+        """切换消息免打扰状态"""
+
+        return self.select_menu_option('消息免打扰')
+
+    def open_in_separate_window(self):
+        """在独立窗口中打开会话"""
+
+        return self.select_menu_option('在独立窗口打开')
+
+    def hide(self):
+        """不显示聊天"""
+
+        return self.select_menu_option('不显示聊天')
+
+    def delete(self):
+        """删除聊天"""
+
+        return self.select_menu_option('删除聊天')
+
 class SearchResultElement:
     def __init__(self, control):
         self.control = control
@@ -181,7 +264,10 @@ class SearchResultElement:
         return f"<wxauto4 Search Element({content})>"
 
     def get_all_text(self):
-        return self.control.split('\n')
+        return [
+            line for line in str(self.content).split('\n')
+            if line and line.strip()
+        ]
     
     def click(self):
         uia.RollIntoView(self.control.GetParentControl(), self.control)
