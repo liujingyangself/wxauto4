@@ -105,12 +105,24 @@ class WeChatSubWnd(BaseUISubWnd):
         if chatbox:
             return chatbox.get_msgs()
         return []
-    
+
     def get_new_msgs(self):
         return self._get_chatbox().get_new_msgs()
-    
-    # def get_msg_by_id(self, msg_id: str):
-    #     return self._get_chatbox().get_msg_by_id(msg_id)
+
+    def get_msg_by_id(self, msg_id):
+        chatbox = self._get_chatbox()
+        if chatbox:
+            return chatbox.get_msg_by_id(msg_id)
+
+    def get_msg_by_hash(self, msg_hash: str):
+        chatbox = self._get_chatbox()
+        if chatbox:
+            return chatbox.get_msg_by_hash(msg_hash)
+
+    def get_last_msg(self):
+        chatbox = self._get_chatbox()
+        if chatbox:
+            return chatbox.get_last_msg()
 
     
 

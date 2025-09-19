@@ -18,6 +18,7 @@ from typing import (
     List,
     Dict,
     Literal,
+    Optional,
 )
 if TYPE_CHECKING:
     from wxauto4.msgs.base import Message
@@ -174,7 +175,22 @@ class Chat:
             self._api._chat_api._update_used_msg_ids()
             return []
         return self._api.get_new_msgs()
-    
+
+    def GetMessageById(self, msg_id) -> Optional['Message']:
+        """根据消息 runtime id 获取消息实例"""
+
+        return self._api.get_msg_by_id(msg_id)
+
+    def GetMessageByHash(self, msg_hash: str) -> Optional['Message']:
+        """根据消息哈希值获取消息实例"""
+
+        return self._api.get_msg_by_hash(msg_hash)
+
+    def GetLastMessage(self) -> Optional['Message']:
+        """获取当前聊天窗口的最后一条消息"""
+
+        return self._api.get_last_msg()
+
     def Close(self) -> None:
         """关闭微信窗口"""
         self._api.close()
